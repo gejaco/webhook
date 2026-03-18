@@ -6,7 +6,7 @@ import json
 app = FastAPI()
 
 @app.post("/webhook")
-async def handle_webhook(request: Request, session_id: Optional[str] = Query(None), uid: Optional[str] = Query(None)):
+async def handle_webhook(request: Request, session_id: Optional[str] = None, uid: Optional[str] = None):
     payload = await request.json()
     # Process the webhook payload
     print("session_id:", session_id, "uid:", uid)
