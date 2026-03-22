@@ -11,22 +11,24 @@ transcript = []
 connected_clients = []
 
 @app.post("/webhook")
-async def webhook(request: Request):
+async def webhook(request: Request, uid: str = Query(None)):  # Accept optional uid query param
     global transcript
     body = await request.json()
-   
+    
+    print(f"Webhook hit with uid={uid}")  # Log the uid
+    print("New segments:", json.dumps(body, indent=2))
+    
     # Append new segments
     transcript.extend(body)
-    print("New segments:", json.dumps(body, indent=2))
-   
-    # Broadcast to ALL connected clients
-    for client in connected_clients[:]:  # Copy to avoid modification during iteration
+    
+    # Broadcast to clients...
+    for client in connected_clients[:]:
         try:
             await client.send_json(transcript)
         except:
             connected_clients.remove(client)
-   
-    return {"status": "received", "added": len(body)}
+    
+    return {"status": "received", "added": len(body), "uid": uid}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
