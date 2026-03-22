@@ -48,43 +48,79 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.get("/", response_class=HTMLResponse)
 async def get_frontend():
     return """
-    <!DOCTYPE html>
-    <html>
-    <head><title>Omi Transcript Viewer</title>
-    <style>body{font-family:Arial; max-width:800px; margin:0 auto; padding:20px;}
-    button{padding:10px 20px; background:#007bff; color:white; border:none; cursor:pointer;}
-    #transcript{max-height:600px; overflow-y:auto; border:1px solid #ddd; padding:10px;}
-    .segment{padding:8px; margin:4px 0; border-radius:4px; background:#f8f9fa;}
-    .speaker{font-weight:bold; color:#007bff;}
-    </style></head>
-    <body>
-    <h1>🔴 Live Omi Transcript</h1>
-    <button onclick="connect()">Connect Live</button>
-    <button onclick="clearTranscript()">Clear</button>
-    <div id="status">Click Connect to start</div>
-    <div id="transcript"></div>
-    <script>
-    let ws;
-    function connect() {
-        ws = new WebSocket(`wss://${location.host}/ws`);
-        document.getElementById('status').textContent = 'Connected - waiting for Omi...';
-        ws.onopen = () => console.log('WebSocket connected');
-        ws.onmessage = (event) => {
-            const segments = JSON.parse(event.data);
-            const transcript = document.getElementById('transcript');
-            transcript.innerHTML = segments.map(s =>
-                `<div class="segment">
-                    <span class="speaker">${s.speaker || 'Unknown'}:</span> ${s.text}
-                </div>`
-            ).join('');
-            transcript.scrollTop = transcript.scrollHeight;
-        };
-        ws.onerror = () => document.getElementById('status').textContent = 'Connection error';
-    }
-    function clearTranscript() {
-        document.getElementById('transcript').innerHTML = '';
-    }
-    </script>
-    </body>
-    </html>
-    """
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Live Transcript</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    #status { margin-bottom: 10px; color: green; }
+    #transcript { width: 100%; height: 80vh; white-space: pre-wrap;
+                  border: 1px solid #ccc; padding: 10px; overflow-y: auto; font-family: monospace; }
+    #debug { margin-top: 10px; font-size: 0.8em; color: #666; }
+  </style>
+</head>
+<body>
+  <h1>Live Transcript</h1>
+  <div id="status">Connecting...</div>
+  <div id="transcript">Waiting for data...</div>
+  <div id="debug"></div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const transcriptEl = document.getElementById('transcript');
+    const debugEl = document.getElementById('debug');
+
+    // Force ws:// for Render
+    const wsUrl = 'ws://' + location.host + '/ws';
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      statusEl.textContent = 'Connected to ' + wsUrl;
+      debugEl.textContent = 'Ready for webhook data...';
+    };
+
+    ws.onclose = (event) => {
+      statusEl.textContent = `Disconnected (code: ${event.code})`;
+      statusEl.style.color = 'red';
+    };
+
+    ws.onerror = (err) => {
+      console.error('WebSocket error:', err);
+      debugEl.textContent = 'WebSocket error occurred';
+      statusEl.style.color = 'red';
+    };
+
+    ws.onmessage = (event) => {
+      console.log('Raw message received:', event.data);  // Check browser console!
+      debugEl.textContent = `Msg at ${new Date().toLocaleTimeString()}`;
+
+      let data;
+      try {
+        data = JSON.parse(event.data);
+        console.log('Parsed data:', data);
+      } catch (e) {
+        console.error('JSON parse failed:', e);
+        return;
+      }
+
+      // Build display text from array of strings/objects
+      let displayText = '';
+      for (const item of data) {
+        if (typeof item === 'string') {
+          displayText += item + '\n';
+        } else if (item && typeof item.text === 'string') {
+          displayText += item.text + '\n';
+        } else {
+          displayText += JSON.stringify(item, null, 2) + '\n\n';
+        }
+      }
+
+      transcriptEl.textContent = displayText;
+      transcriptEl.scrollTop = transcriptEl.scrollHeight;
+    };
+  </script>
+</body>
+</html>
+"""
