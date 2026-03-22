@@ -11,7 +11,7 @@ transcript = []
 connected_clients = []
 
 @app.post("/webhook")
-async def webhook(request: Request, uid: str = Query(None)):  # Accept optional uid query param
+async def webhook(request: Request, uid: str = None):  # Accept optional uid query param
     global transcript
     body = await request.json()
     
