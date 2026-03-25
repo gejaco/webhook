@@ -10,6 +10,26 @@ transcript = []
 # List of connected WebSocket clients
 connected_clients = []
 
+@app.post("/")
+async def webhook_root(request: Request, uid: str | None = Query(None)):
+    global transcript
+    body = await request.json()
+    
+    print(f"Omi webhook to root: uid={uid}, body={body}")
+    
+    # Append new segments (same as before)
+    transcript.extend(body)
+    
+    # Broadcast to WebSocket clients
+    for client in connected_clients[:]:
+        try:
+            await client.send_json(transcript)
+        except:
+            connected_clients.remove(client)
+    
+    return {"status": "received", "uid": uid, "added": len(body)}
+
+
 @app.post("/webhook")
 async def webhook(request: Request, uid: str = None):  # Accept optional uid query param
     global transcript
