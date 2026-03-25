@@ -114,28 +114,43 @@ async def get_frontend():
       statusEl.style.color = 'red';
     };
 
-    ws.onmessage = (event) => {
-      console.log('📨 Raw WS message:', event.data);
-      debugEl.textContent = `Updated at ${new Date().toLocaleTimeString()}`;
+ws.onmessage = (event) => {
+  console.log('📨 Raw WS message:', event.data);
+  debugEl.textContent = `Updated at ${new Date().toLocaleTimeString()}`;
 
-      try {
-        const data = JSON.parse(event.data);
-        console.log('✅ Parsed transcript:', data);
+  try {
+    const data = JSON.parse(event.data);
+    console.log('✅ Parsed data:', data);
 
-        // Display all segments
-        let text = '';
-        data.forEach(item => {
-          if (typeof item === 'string') text += item + '\\n';
-          else if (item.text) text += item.text + '\\n';
-          else text += JSON.stringify(item) + '\\n\\n';
-        });
+    let text = '';
 
-        transcriptEl.textContent = text;
-        transcriptEl.scrollTop = transcriptEl.scrollHeight;
-      } catch (e) {
-        console.error('JSON parse error:', e);
-      }
-    };
+    // Handle Omi format: {segments: [...], session_id: "..."}
+    if (data.segments && Array.isArray(data.segments)) {
+      data.segments.forEach(seg => {
+        if (seg.text) {
+          text += `[${seg.speaker || 'Unknown'}] ${seg.text}\n`;
+        }
+      });
+      text += `\nSession: ${data.session_id || 'unknown'}\n`;
+    } 
+    // Fallback for arrays (curl tests)
+    else if (Array.isArray(data)) {
+      data.forEach(item => {
+        if (typeof item === 'string') text += item + '\n';
+        else if (item.text) text += item.text + '\n';
+        else text += JSON.stringify(item) + '\n\n';
+      });
+    } 
+    else {
+      text = JSON.stringify(data, null, 2);
+    }
+
+    transcriptEl.textContent = text;
+    transcriptEl.scrollTop = transcriptEl.scrollHeight;
+  } catch (e) {
+    console.error('JSON parse error:', e);
+  }
+};
   </script>
 </body>
 </html>"""
