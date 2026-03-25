@@ -69,24 +69,22 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.get("/", response_class=HTMLResponse)
 async def get_frontend():
-    return """
-<!DOCTYPE html>
+    return """<!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Live Transcript</title>
+  <title>Live Omi Transcript</title>
   <style>
-    body { font-family: sans-serif; margin: 20px; }
-    #status { margin-bottom: 10px; color: green; }
-    #transcript { width: 100%; height: 80vh; white-space: pre-wrap;
-                  border: 1px solid #ccc; padding: 10px; overflow-y: auto; font-family: monospace; }
-    #debug { margin-top: 10px; font-size: 0.8em; color: #666; }
+    body { font-family: monospace; margin: 20px; background: #f5f5f5; }
+    #status { color: green; font-weight: bold; margin-bottom: 10px; }
+    #transcript { height: 70vh; border: 1px solid #ddd; padding: 15px; 
+                  overflow-y: auto; background: white; white-space: pre-wrap; }
+    #debug { font-size: 0.9em; color: #666; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h1>Live Transcript</h1>
-  <div id="status">Connecting...</div>
-  <div id="transcript">Waiting for data...</div>
+  <h1>🔴 Live Omi Transcript</h1>
+  <div id="status">Connecting WebSocket...</div>
+  <div id="transcript">Waiting for Omi data...</div>
   <div id="debug"></div>
 
   <script>
@@ -94,55 +92,51 @@ async def get_frontend():
     const transcriptEl = document.getElementById('transcript');
     const debugEl = document.getElementById('debug');
 
-    // Force ws:// for Render
-    const wsUrl = 'ws://' + location.host + '/ws';
+    // CRITICAL: Use wss:// for Render HTTPS
+    const wsUrl = 'wss://' + location.host + '/ws';
+    console.log('Connecting to:', wsUrl);
+
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-      statusEl.textContent = 'Connected to ' + wsUrl;
-      debugEl.textContent = 'Ready for webhook data...';
+      statusEl.textContent = '✅ Connected - waiting for Omi...';
+      debugEl.textContent = 'WebSocket ready. Send webhook data!';
     };
 
-    ws.onclose = (event) => {
-      statusEl.textContent = `Disconnected (code: ${event.code})`;
+    ws.onclose = (e) => {
+      statusEl.textContent = `❌ Disconnected (code ${e.code})`;
       statusEl.style.color = 'red';
     };
 
     ws.onerror = (err) => {
       console.error('WebSocket error:', err);
-      debugEl.textContent = 'WebSocket error occurred';
+      statusEl.textContent = '❌ Connection failed';
       statusEl.style.color = 'red';
     };
 
     ws.onmessage = (event) => {
-      console.log('Raw message received:', event.data);  // Check browser console!
-      debugEl.textContent = `Msg at ${new Date().toLocaleTimeString()}`;
+      console.log('📨 Raw WS message:', event.data);
+      debugEl.textContent = `Updated at ${new Date().toLocaleTimeString()}`;
 
-      let data;
       try {
-        data = JSON.parse(event.data);
-        console.log('Parsed data:', data);
+        const data = JSON.parse(event.data);
+        console.log('✅ Parsed transcript:', data);
+
+        // Display all segments
+        let text = '';
+        data.forEach(item => {
+          if (typeof item === 'string') text += item + '\\n';
+          else if (item.text) text += item.text + '\\n';
+          else text += JSON.stringify(item) + '\\n\\n';
+        });
+
+        transcriptEl.textContent = text;
+        transcriptEl.scrollTop = transcriptEl.scrollHeight;
       } catch (e) {
-        console.error('JSON parse failed:', e);
-        return;
+        console.error('JSON parse error:', e);
       }
-
-      // Build display text from array of strings/objects
-      let displayText = '';
-      for (const item of data) {
-        if (typeof item === 'string') {
-          displayText += item + '\n';
-        } else if (item && typeof item.text === 'string') {
-          displayText += item.text + '\n';
-        } else {
-          displayText += JSON.stringify(item, null, 2) + '\n\n';
-        }
-      }
-
-      transcriptEl.textContent = displayText;
-      transcriptEl.scrollTop = transcriptEl.scrollHeight;
     };
   </script>
 </body>
-</html>
-"""
+</html>"""
+
