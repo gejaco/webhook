@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>🔴 Live Omi Transcript</title>
+  <style>
+    body { font-family: monospace; margin: 20px; background: #f5f5f5; }
+    #status { color: green; font-weight: bold; margin-bottom: 10px; }
+    #transcript { height: 70vh; border: 1px solid #ddd; padding: 15px; overflow-y: auto; background: white; white-space: pre-wrap; }
+    #debug { font-size: 0.9em; color: #666; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>🔴 Live Omi Transcript</h1>
+  <div id="status">Connecting WebSocket...</div>
+  <div id="transcript">Waiting for Omi data...</div>
+  <div id="debug"></div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const transcriptEl = document.getElementById('transcript');
+    const debugEl = document.getElementById('debug');
+
+    const wsUrl = 'wss://' + location.host + '/ws';
+    console.log('Connecting to:', wsUrl);
+
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      statusEl.textContent = '✅ Connected - waiting for Omi...';
+      debugEl.textContent = 'WebSocket ready. Send webhook data!';
+    };
+
+    ws.onclose = (e) => {
+      statusEl.textContent = `❌ Disconnected (code ${e.code})`;
+      statusEl.style.color = 'red';
+    };
+
+    ws.onerror = (err) => {
+      console.error('WebSocket error:', err);
+      statusEl.textContent = '❌ Connection failed';
+      statusEl.style.color = 'red';
+    };
+
+    ws.onmessage = (event) => {
+      console.log('📨 Raw WS message:', event.data);
+      debugEl.textContent = `Updated at ${new Date().toLocaleTimeString()}`;
+
+      try {
+        const data = JSON.parse(event.data);
+        console.log('✅ Parsed data:', data);
+
+        let text = '';
+        if (data.segments && Array.isArray(data.segments)) {
+          data.segments.forEach(seg => {
+            if (seg.text) {
+              text += `[${seg.speaker || 'Unknown'}] ${seg.text}\\n`;
+            }
+          });
+          text += `\\nSession: ${data.session_id || 'unknown'}\\n`;
+        } else if (Array.isArray(data)) {
+          data.forEach(item => {
+            if (typeof item === 'string') text += item + '\\n';
+            else if (item.text) text += item.text + '\\n';
+            else text += JSON.stringify(item) + '\\n\\n';
+          });
+        } else {
+          text = JSON.stringify(data, null, 2);
+        }
+
+        transcriptEl.textContent = text;
+        transcriptEl.scrollTop = transcriptEl.scrollHeight;
+      } catch (e) {
+        console.error('JSON parse error:', e);
+      }
+    };
+  </script>
+</body>
+</html>
