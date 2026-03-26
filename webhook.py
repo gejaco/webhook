@@ -22,17 +22,23 @@ async def webhook_root(request: Request, uid: str | None = None):
     
     print(f"Omi webhook to root: uid={uid}, body={body}")
     
-    # Append new segments (same as before)
-    transcript.extend(body)
+    # FIX: Extract segments, don't extend the dict
+    if isinstance(body, dict) and "segments" in body:
+        new_segments = body["segments"]
+        transcript.extend(new_segments)  # Only append segments array
+        print(f"Added {len(new_segments)} segments")
+    else:
+        transcript.extend(body)  # Curl-style list fallback
     
-    # Broadcast to WebSocket clients
+    # Broadcast full transcript array
     for client in connected_clients[:]:
         try:
             await client.send_json(transcript)
         except:
             connected_clients.remove(client)
     
-    return {"status": "received", "uid": uid, "added": len(body)}
+    return {"status": "received", "uid": uid, "added": len(new_segments) if 'new_segments' in locals() else len(body)}
+
 
 
 @app.post("/webhook")
