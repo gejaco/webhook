@@ -67,7 +67,9 @@
           text = JSON.stringify(data, null, 2);
         }
 
-        transcriptEl.textContent = text;
+        // Replace textContent with innerHTML + <br> for newlines
+        transcriptEl.innerHTML = text.replace(/\n/g, '<br>');
+
         transcriptEl.scrollTop = transcriptEl.scrollHeight;
       } catch (e) {
         console.error('JSON parse error:', e);
