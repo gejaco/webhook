@@ -286,15 +286,11 @@
         } else {
           text = JSON.stringify(data, null, 2);
         }
+
         // convert literal "\n" sequences into real newlines
-        text = text.replace(/\\n/g, '\n');
-
-        // escape HTML then convert newlines to <br>
-        const escapeHtml = str => str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        transcriptEl.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
-
-        transcriptEl.scrollTop = transcriptEl.scrollHeight;
-        //transcriptEl.textContent = text;
+        text = text.replace(/\\n/g, '\n');  
+        transcriptEl.textContent = text;
+        
       } catch (e) {
         console.error('JSON parse error:', e);
       }
