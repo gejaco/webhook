@@ -288,9 +288,9 @@
         }
 
         // convert literal "\n" sequences into real newlines
-        text = text.replace(/\\n/g, '\n');  
+        //text = text.replace(/\\n/g, '\n');  
         transcriptEl.textContent = text;
-        
+
       } catch (e) {
         console.error('JSON parse error:', e);
       }

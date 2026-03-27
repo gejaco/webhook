@@ -18,8 +18,23 @@ connected_clients = []
 @app.post("/")
 async def webhook_root(request: Request, uid: str | None = None):
     global transcript
-    body = await request.json()
-    
+
+    raw = await request.body()
+    print("=== WEBHOOK HIT ===")
+    print("Headers:", dict(request.headers))
+    print("Raw body:", raw.decode("utf-8", errors="ignore"))    
+
+    try:
+        body = await request.json()
+        print("Parsed JSON type:", type(body).__name__)
+        print("Parsed JSON:", body)
+    except Exception as e:
+        print("JSON parse failed:", e)
+        return {"ok": False, "error": "invalid json"}
+    except Exception as e:
+        print("Error parsing JSON:", e)
+        body = {}
+
     print(f"Omi webhook to root: uid={uid}, body={body}")
     
     # FIX: Extract segments, don't extend the dict
