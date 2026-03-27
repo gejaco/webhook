@@ -16,7 +16,9 @@ transcript = []
 connected_clients = []
 
 @app.post("/")
+@app.post("/webhook")
 async def webhook_root(request: Request, uid: str | None = None):
+    print("WEBHOOK HIT")    
     global transcript
 
     raw = await request.body()
@@ -56,25 +58,25 @@ async def webhook_root(request: Request, uid: str | None = None):
 
 
 
-@app.post("/webhook")
-async def webhook(request: Request, uid: str = None):  # Accept optional uid query param
-    global transcript
-    body = await request.json()
+# @app.post("/webhook")
+# async def webhook(request: Request, uid: str = None):  # Accept optional uid query param
+#     global transcript
+#     body = await request.json()
     
-    print(f"Webhook hit with uid={uid}")  # Log the uid
-    print("New segments:", json.dumps(body, indent=2))
+#     print(f"Webhook hit with uid={uid}")  # Log the uid
+#     print("New segments:", json.dumps(body, indent=2))
     
-    # Append new segments
-    transcript.extend(body)
+#     # Append new segments
+#     transcript.extend(body)
     
-    # Broadcast to clients...
-    for client in connected_clients[:]:
-        try:
-            await client.send_json(transcript)
-        except:
-            connected_clients.remove(client)
+#     # Broadcast to clients...
+#     for client in connected_clients[:]:
+#         try:
+#             await client.send_json(transcript)
+#         except:
+#             connected_clients.remove(client)
     
-    return {"status": "received", "added": len(body), "uid": uid}
+#     return {"status": "received", "added": len(body), "uid": uid}
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
